@@ -1,18 +1,18 @@
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
- 
+
   filter {
     name   = "name"
     values = ["al2023-ami-*-x86_64"]
   }
- 
+
   filter {
     name   = "virtualization-type"
     values = ["hvm"]
   }
 }
- 
+
 resource "aws_instance" "web" {
   count                       = var.instance_count
   ami                         = data.aws_ami.amazon_linux.id
@@ -21,7 +21,7 @@ resource "aws_instance" "web" {
   vpc_security_group_ids      = [aws_security_group.web.id]
   key_name                    = var.key_name != "" ? var.key_name : null
   associate_public_ip_address = true
- 
+
   user_data = <<-EOF
     #!/bin/bash
     dnf update -y
@@ -44,7 +44,7 @@ resource "aws_instance" "web" {
     </html>
     HTML
   EOF
- 
+
   tags = {
     Name = "${var.project_name}-web-${count.index + 1}"
   }

@@ -1,13 +1,13 @@
 terraform {
   required_version = ">= 1.15.8"
- 
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
   }
- 
+
   backend "s3" {
     bucket         = "mehdiseneca2026terraformproject-tfstate"
     key            = "cicd-lb-demo/terraform.tfstate"
@@ -16,7 +16,7 @@ terraform {
     encrypt        = true
   }
 }
- 
+
 provider "aws" {
   region = var.aws_region
 }
