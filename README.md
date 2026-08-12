@@ -1,1 +1,1 @@
-# aws-cicd-lb-demo
+# AWS CI/CD Learning Project
