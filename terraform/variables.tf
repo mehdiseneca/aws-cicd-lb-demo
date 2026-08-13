@@ -19,7 +19,7 @@ variable "instance_type" {
 variable "instance_count" {
   description = "Number of EC2 web servers behind the load balancer"
   type        = number
-  default     = 2
+  default     = 4    # changed from 2 to 4
 }
 
 variable "allowed_ssh_cidr" {
