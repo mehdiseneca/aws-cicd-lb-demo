@@ -1,61 +1,79 @@
 name: Terraform CI/CD
- 
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
- 
+
 permissions:
   id-token: write
   contents: read
- 
+
 env:
   AWS_REGION: us-east-1
-  TF_VERSION: 1.9.8   # match your local terraform -version and required_version in providers.tf
- 
+  TF_VERSION: 1.9.8
+
 jobs:
+  whoami:
+    name: Sanity check - assume role and call GetCallerIdentity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git clone the repository
+        uses: actions/checkout@v4
+
+      - name: Show GitHub OIDC context
+        run: |
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Ref: $GITHUB_REF"
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Actor: $GITHUB_ACTOR"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::903503520529:role/terraform_project_role
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: us-east-1
+
+      - name: Sts GetCallerIdentity
+        run: aws sts get-caller-identity
+
   terraform:
     name: Terraform Plan & Apply
+    needs: whoami
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: terraform
- 
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
- 
-      - name: Show GitHub OIDC context
-        run: |
-            echo "Repository: $GITHUB_REPOSITORY"
-            echo "Ref: $GITHUB_REF"
-            echo "Event: $GITHUB_EVENT_NAME"
-            echo "Actor: $GITHUB_ACTOR"
-      
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
- 
+          role-to-assume: arn:aws:iam::903503520529:role/terraform_project_role
+          aws-region: us-east-1
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
- 
+
       - name: Terraform Format Check
         run: terraform fmt -check
- 
+
       - name: Terraform Init
         run: terraform init
- 
+
       - name: Terraform Validate
         run: terraform validate
- 
+
       - name: Terraform Plan
         run: terraform plan -out=tfplan
- 
+
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve tfplan
