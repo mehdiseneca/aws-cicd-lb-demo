@@ -9,7 +9,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "mehdiseneca2026terraformproject-tfstate"
+    bucket         = "mehdi2026senecagithub-tfstate"
     key            = "cicd-lb-demo/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "terraform-locks"

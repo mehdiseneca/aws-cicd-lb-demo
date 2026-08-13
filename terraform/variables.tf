@@ -39,3 +39,9 @@ variable "github_repo" {
   type        = string
   default     = "mehdiseneca/aws-cicd-lb-demo"
 }
+ 
+variable "github_oidc_subject_prefix" {
+  description = "Exact subject claim prefix from GitHub Settings -> Actions -> General -> OIDC configuration"
+  type        = string
+  default     = " repo:mehdiseneca@93612198/aws-cicd-lb-demo-@1332466388"
+}
