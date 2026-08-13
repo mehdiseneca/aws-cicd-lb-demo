@@ -15,11 +15,16 @@ env:
   TF_VERSION: 1.9.8
 
 jobs:
-  whoami:
-    name: Sanity check - assume role and call GetCallerIdentity
+  terraform:
+    name: Terraform Plan & Apply
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform
+
     steps:
-      - name: Git clone the repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Show GitHub OIDC context
@@ -29,33 +34,55 @@ jobs:
           echo "Event: $GITHUB_EVENT_NAME"
           echo "Actor: $GITHUB_ACTOR"
 
+      - name: Debug OIDC claims
+        shell: bash
+        run: |
+          echo "Requesting GitHub OIDC token..."
+
+          RESPONSE=$(curl -sS \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com")
+
+          TOKEN=$(echo "$RESPONSE" | jq -r '.value')
+
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "ERROR: Could not obtain OIDC token"
+            exit 1
+          fi
+
+          PAYLOAD=$(echo "$TOKEN" | cut -d '.' -f2)
+
+          # Convert base64url to standard base64
+          PAYLOAD=$(echo "$PAYLOAD" | tr '_-' '/+')
+
+          # Add required padding
+          case $((${#PAYLOAD} % 4)) in
+            2) PAYLOAD="${PAYLOAD}==" ;;
+            3) PAYLOAD="${PAYLOAD}=" ;;
+          esac
+
+          echo "OIDC claims:"
+          echo "$PAYLOAD" | base64 -d 2>/dev/null | jq '{
+            iss,
+            aud,
+            sub,
+            repository,
+            repository_owner,
+            repository_id,
+            repository_owner_id,
+            ref,
+            event_name
+          }'
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::903503520529:role/terraform_project_role
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
-          aws-region: us-east-1
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Sts GetCallerIdentity
+      - name: STS GetCallerIdentity
         run: aws sts get-caller-identity
-
-  terraform:
-    name: Terraform Plan & Apply
-    needs: whoami
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: terraform
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::903503520529:role/terraform_project_role
-          aws-region: us-east-1
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
