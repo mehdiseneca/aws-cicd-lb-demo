@@ -32,9 +32,7 @@ jobs:
             echo "Ref: $GITHUB_REF"
             echo "Event: $GITHUB_EVENT_NAME"
             echo "Actor: $GITHUB_ACTOR"
-      - name: Show GitHub OIDC token claims
-        uses: github/actions-oidc-debugger@main
-
+      
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
